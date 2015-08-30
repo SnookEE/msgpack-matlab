@@ -13,14 +13,14 @@
 #include "mex.h"
 #include "matrix.h"
 
-mxArray* mex_unpack_boolean(msgpack_object obj);
-mxArray* mex_unpack_positive_integer(msgpack_object obj);
-mxArray* mex_unpack_negative_integer(msgpack_object obj);
-mxArray* mex_unpack_double(msgpack_object obj);
-mxArray* mex_unpack_raw(msgpack_object obj);
-mxArray* mex_unpack_nil(msgpack_object obj);
-mxArray* mex_unpack_map(msgpack_object obj);
-mxArray* mex_unpack_array(msgpack_object obj);
+mxArray* mex_unpack_boolean(msgpack::object obj);
+mxArray* mex_unpack_positive_integer(msgpack::object obj);
+mxArray* mex_unpack_negative_integer(msgpack::object obj);
+mxArray* mex_unpack_double(msgpack::object obj);
+mxArray* mex_unpack_raw(msgpack::object obj);
+mxArray* mex_unpack_nil(msgpack::object obj);
+mxArray* mex_unpack_map(msgpack::object obj);
+mxArray* mex_unpack_array(msgpack::object obj);
 
 typedef struct mxArrayRes mxArrayRes;
 struct mxArrayRes
@@ -34,7 +34,7 @@ struct mxArrayRes
 char *unpack_raw_str = (char *) mxMalloc(sizeof(char) * DEFAULT_STR_SIZE);
 
 void (*PackMap[17])(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs);
-mxArray* (*unPackMap[8])(msgpack_object obj);
+mxArray* (*unPackMap[8])(msgpack::object  obj);
 
 void mexExit(void)
 {
@@ -63,12 +63,12 @@ void mxArrayRes_free(mxArrayRes * head)
    }
 }
 
-mxArray* mex_unpack_boolean(msgpack_object obj)
+mxArray* mex_unpack_boolean(msgpack::object  obj)
 {
    return mxCreateLogicalScalar(obj.via.boolean);
 }
 
-mxArray* mex_unpack_positive_integer(msgpack_object obj)
+mxArray* mex_unpack_positive_integer(msgpack::object obj)
 {
    /*
     mxArray *ret = mxCreateNumericMatrix(1,1, mxUINT64_CLASS, mxREAL);
@@ -79,7 +79,7 @@ mxArray* mex_unpack_positive_integer(msgpack_object obj)
    return mxCreateDoubleScalar((double) obj.via.u64);
 }
 
-mxArray* mex_unpack_negative_integer(msgpack_object obj)
+mxArray* mex_unpack_negative_integer(msgpack::object  obj)
 {
    /*
     mxArray *ret = mxCreateNumericMatrix(1,1, mxINT64_CLASS, mxREAL);
@@ -90,7 +90,7 @@ mxArray* mex_unpack_negative_integer(msgpack_object obj)
    return mxCreateDoubleScalar((double) obj.via.i64);
 }
 
-mxArray* mex_unpack_double(msgpack_object obj)
+mxArray* mex_unpack_double(msgpack::object  obj)
 {
    /*
     mxArray* ret = mxCreateDoubleMatrix(1,1, mxREAL);
@@ -98,10 +98,10 @@ mxArray* mex_unpack_double(msgpack_object obj)
     *ptr = obj.via.dec;
     return ret;
     */
-   return mxCreateDoubleScalar(obj.via.dec);
+   return mxCreateDoubleScalar(obj.via.f64);
 }
 
-mxArray* mex_unpack_raw(msgpack_object obj)
+mxArray* mex_unpack_raw(msgpack::object  obj)
 {
    /*
     mxArray* ret = mxCreateNumericMatrix(1,obj.via.raw.size, mxUINT8_CLASS, mxREAL);
@@ -118,7 +118,7 @@ mxArray* mex_unpack_raw(msgpack_object obj)
    return ret;
 }
 
-mxArray* mex_unpack_nil(msgpack_object obj)
+mxArray* mex_unpack_nil(msgpack::object  obj)
 {
    /*
     return mxCreateCellArray(0,0);
@@ -126,14 +126,14 @@ mxArray* mex_unpack_nil(msgpack_object obj)
    return mxCreateDoubleScalar(0);
 }
 
-mxArray* mex_unpack_map(msgpack_object obj)
+mxArray* mex_unpack_map(msgpack::object  obj)
 {
    uint32_t nfields = obj.via.map.size;
    char **field_name = (char **) mxCalloc(nfields, sizeof(char *));
-   for (int i = 0; i < nfields; i++)
+   for (uint32_t i = 0; i < nfields; i++)
    {
-      struct msgpack_object_kv obj_kv = obj.via.map.ptr[i];
-      if (obj_kv.key.type == MSGPACK_OBJECT_RAW)
+      msgpack::object_kv obj_kv = obj.via.map.ptr[i];
+      if (obj_kv.key.type == msgpack::v1::type::object_type::STR)
       {
          /* the raw size from msgpack only counts actual characters
           * but C char array need end with \0 */
@@ -147,24 +147,24 @@ mxArray* mex_unpack_map(msgpack_object obj)
    }
    mxArray *ret = mxCreateStructMatrix(1, 1, obj.via.map.size, (const char**) field_name);
    msgpack_object ob;
-   for (int i = 0; i < nfields; i++)
+   for (uint32_t i = 0; i < nfields; i++)
    {
       int ifield = mxGetFieldNumber(ret, field_name[i]);
       ob = obj.via.map.ptr[i].val;
       mxSetFieldByNumber(ret, 0, ifield, (*unPackMap[ob.type])(ob));
    }
-   for (int i = 0; i < nfields; i++)
+   for (uint32_t i = 0; i < nfields; i++)
       mxFree((void *) field_name[i]);
    mxFree(field_name);
    return ret;
 }
 
-mxArray* mex_unpack_array(msgpack_object obj)
+mxArray* mex_unpack_array(msgpack::object  obj)
 {
    /* validata array element type */
    int types = 0;
    int unique_type = -1;
-   for (int i = 0; i < obj.via.array.size; i++)
+   for (size_t i = 0; i < obj.via.array.size; i++)
       if ((obj.via.array.ptr[i].type > 0) && (obj.via.array.ptr[i].type < 5) && (obj.via.array.ptr[i].type != unique_type))
       {
          unique_type = obj.via.array.ptr[i].type;
@@ -182,26 +182,26 @@ mxArray* mex_unpack_array(msgpack_object obj)
       case 1:
          ret = mxCreateLogicalMatrix(1, obj.via.array.size);
          ptrb = (bool*) mxGetPr(ret);
-         for (int i = 0; i < obj.via.array.size; i++)
+         for (size_t i = 0; i < obj.via.array.size; i++)
             ptrb[i] = obj.via.array.ptr[i].via.boolean;
          break;
       case 2:
          ret = mxCreateNumericMatrix(1, obj.via.array.size, mxUINT64_CLASS, mxREAL);
          ptru = (uint64_t*) mxGetPr(ret);
-         for (int i = 0; i < obj.via.array.size; i++)
+         for (size_t i = 0; i < obj.via.array.size; i++)
             ptru[i] = obj.via.array.ptr[i].via.u64;
          break;
       case 3:
          ret = mxCreateNumericMatrix(1, obj.via.array.size, mxINT64_CLASS, mxREAL);
          ptri = (int64_t*) mxGetPr(ret);
-         for (int i = 0; i < obj.via.array.size; i++)
+         for (size_t i = 0; i < obj.via.array.size; i++)
             ptri[i] = obj.via.array.ptr[i].via.i64;
          break;
       case 4:
          ret = mxCreateNumericMatrix(1, obj.via.array.size, mxDOUBLE_CLASS, mxREAL);
          ptrd = mxGetPr(ret);
-         for (int i = 0; i < obj.via.array.size; i++)
-            ptrd[i] = obj.via.array.ptr[i].via.dec;
+         for (size_t i = 0; i < obj.via.array.size; i++)
+            ptrd[i] = obj.via.array.ptr[i].via.f64;
          break;
       default:
          break;
@@ -211,7 +211,7 @@ mxArray* mex_unpack_array(msgpack_object obj)
    else
    {
       mxArray *ret = mxCreateCellMatrix(1, obj.via.array.size);
-      for (int i = 0; i < obj.via.array.size; i++)
+      for (size_t i = 0; i < obj.via.array.size; i++)
       {
          msgpack_object ob = obj.via.array.ptr[i];
          mxSetCell(ret, i, (*unPackMap[ob.type])(ob));
@@ -226,13 +226,11 @@ void mex_unpack(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    int size = mxGetM(prhs[0]) * mxGetN(prhs[0]);
 
    /* deserializes it. */
-   msgpack_unpacked msg;
-   msgpack_unpacked_init(&msg);
-   if (!msgpack_unpack_next(&msg, str, size, NULL))
-      mexErrMsgTxt("unpack error");
+   msgpack::unpacked msg;
+   msgpack::unpack(&msg,str,size);
 
    /* prints the deserialized object. */
-   msgpack_object obj = msg.data;
+   msgpack::object obj = msg.get();
 
    plhs[0] = (*unPackMap[obj.type])(obj);
 }
@@ -482,26 +480,25 @@ void mex_unpacker(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    mxArrayRes * ret = NULL;
    int npack = 0;
    /* Init deserialize using msgpack_unpacker */
-   msgpack_unpacker pac;
-   msgpack_unpacker_init(&pac, MSGPACK_UNPACKER_INIT_BUFFER_SIZE);
+   msgpack::unpacker pac;
+   pac.reserve_buffer(MSGPACK_UNPACKER_INIT_BUFFER_SIZE);
 
    const char *str = (const char*) mxGetPr(prhs[0]);
    int size = mxGetM(prhs[0]) * mxGetN(prhs[0]);
    if (size)
    {
       /* feeds the buffer */
-      msgpack_unpacker_reserve_buffer(&pac, size);
-      memcpy(msgpack_unpacker_buffer(&pac), str, size);
-      msgpack_unpacker_buffer_consumed(&pac, size);
+      pac.reserve_buffer(size);
+      memcpy(pac.buffer(), str, size);
+      pac.buffer_consumed(size);
 
       /* start streaming deserialization */
-      msgpack_unpacked msg;
-      msgpack_unpacked_init(&msg);
-      for (; msgpack_unpacker_next(&pac, &msg); npack++)
+      msgpack::unpacked msg;
+      while(pac.next(&msg))
       {
-         /* prints the deserialized object. */
-         msgpack_object obj = msg.data;
+         msgpack::object obj = msg.get();
          ret = mxArrayRes_new(ret, (*unPackMap[obj.type])(obj));
+         npack++;
       }
       /* set cell for output */
       plhs[0] = mxCreateCellMatrix(npack, 1);
@@ -516,31 +513,32 @@ void mex_unpacker_std(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]
 {
    int npack = 0;
    /* Init deserialize using msgpack_unpacker */
-   msgpack_unpacker pac;
-   msgpack_unpacker_init(&pac, MSGPACK_UNPACKER_INIT_BUFFER_SIZE);
+   msgpack::unpacker pac;
+   pac.reserve_buffer(MSGPACK_UNPACKER_INIT_BUFFER_SIZE);
 
    const char *str = (const char*) mxGetPr(prhs[0]);
    int size = mxGetM(prhs[0]) * mxGetN(prhs[0]);
    if (size)
    {
       /* feeds the buffer */
-      msgpack_unpacker_reserve_buffer(&pac, size);
-      memcpy(msgpack_unpacker_buffer(&pac), str, size);
-      msgpack_unpacker_buffer_consumed(&pac, size);
+      pac.reserve_buffer(size);
+      memcpy(pac.buffer(), str, size);
+      pac.buffer_consumed(size);
 
       /* start streaming deserialization */
-      msgpack_unpacked msg;
-      msgpack_unpacked_init(&msg);
-      for (; msgpack_unpacker_next(&pac, &msg); npack++)
+      msgpack::unpacked msg;
+      while(pac.next(&msg))
       {
-         /* prints the deserialized object. */
-         msgpack_object obj = msg.data;
+         msgpack::object obj = msg.get();
          cells.push_back((*unPackMap[obj.type])(obj));
+         npack++;
       }
       /* set cell for output */
       plhs[0] = mxCreateCellMatrix(1, npack);
-      for (int i = 0; i < cells.size(); i++)
+      for (size_t i = 0; i < cells.size(); i++)
+      {
          mxSetCell(plhs[0], i, cells[i]);
+      }
       cells.clear();
    }
 }
