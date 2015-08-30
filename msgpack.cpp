@@ -199,6 +199,7 @@ mxArray* mex_unpack_array(msgpack::object  obj)
          break;
       case 4:
          ret = mxCreateNumericMatrix(1, obj.via.array.size, mxDOUBLE_CLASS, mxREAL);
+         mexPrintf("Creating double matrix\n");
          ptrd = mxGetPr(ret);
          for (size_t i = 0; i < obj.via.array.size; i++)
             ptrd[i] = obj.via.array.ptr[i].via.f64;
@@ -269,14 +270,11 @@ void mex_pack_double(msgpack::packer<msgpack::sbuffer> & pk, int nrhs, const mxA
 {
    int nElements = mxGetNumberOfElements(prhs);
    double *data = mxGetPr(prhs);
-//   if (nElements > 1)
-//      msgpack_pack_array(pk, nElements);
    if (nElements > 1)
       pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
    {
       pk.pack(data[i]);
-      //msgpack_pack_float(pk, data[i]);
    }
 }
 
