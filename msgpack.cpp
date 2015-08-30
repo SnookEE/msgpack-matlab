@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
+#include <msgpack.hpp>
 
-#include "msgpack.hpp"
 #include "mex.h"
 #include "matrix.h"
 
@@ -33,7 +33,7 @@ struct mxArrayRes
 /* preallocate str space for unpack raw */
 char *unpack_raw_str = (char *) mxMalloc(sizeof(char) * DEFAULT_STR_SIZE);
 
-void (*PackMap[17])(msgpack_packer *pk, int nrhs, const mxArray *prhs);
+void (*PackMap[17])(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs);
 mxArray* (*unPackMap[8])(msgpack_object obj);
 
 void mexExit(void)
@@ -237,152 +237,144 @@ void mex_unpack(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    plhs[0] = (*unPackMap[obj.type])(obj);
 }
 
-void mex_pack_unknown(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_unknown(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
-   msgpack_pack_nil(pk);
+   pk.pack_nil();
 }
 
-void mex_pack_void(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_void(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
-   msgpack_pack_nil(pk);
+   pk.pack_nil();
 }
 
-void mex_pack_function(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_function(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
-   msgpack_pack_nil(pk);
+   pk.pack_nil();
 }
 
-void mex_pack_single(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_single(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    float *data = (float*) mxGetPr(prhs);
+//   if (nElements > 1)
+//      msgpack_pack_array(pk, nElements);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
    {
-      msgpack_pack_float(pk, data[i]);
+      pk.pack(data[i]);
+      //msgpack_pack_float(pk, data[i]);
    }
 }
 
-void mex_pack_double(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_double(msgpack::packer<msgpack::sbuffer> & pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    double *data = mxGetPr(prhs);
+//   if (nElements > 1)
+//      msgpack_pack_array(pk, nElements);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
    {
-      msgpack_pack_double(pk, data[i]);
+      pk.pack(data[i]);
+      //msgpack_pack_float(pk, data[i]);
    }
 }
 
-void mex_pack_int8(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_int8(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    int8_t *data = (int8_t*) mxGetPr(prhs);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
-   {
-      msgpack_pack_int8(pk, data[i]);
-   }
+      pk.pack(data[i]);
 }
 
-void mex_pack_uint8(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_uint8(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    uint8_t *data = (uint8_t*) mxGetPr(prhs);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
-   {
-      msgpack_pack_uint8(pk, data[i]);
-   }
+      pk.pack(data[i]);
 }
 
-void mex_pack_int16(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_int16(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    int16_t *data = (int16_t*) mxGetPr(prhs);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
-   {
-      msgpack_pack_int16(pk, data[i]);
-   }
+      pk.pack(data[i]);
 }
 
-void mex_pack_uint16(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_uint16(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    uint16_t *data = (uint16_t*) mxGetPr(prhs);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
-   {
-      msgpack_pack_uint16(pk, data[i]);
-   }
+      pk.pack(data[i]);
 }
 
-void mex_pack_int32(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_int32(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    int32_t *data = (int32_t*) mxGetPr(prhs);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
-   {
-      msgpack_pack_int32(pk, data[i]);
-   }
+      pk.pack(data[i]);
 }
 
-void mex_pack_uint32(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_uint32(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    uint32_t *data = (uint32_t*) mxGetPr(prhs);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
-   {
-      msgpack_pack_uint32(pk, data[i]);
-   }
+      pk.pack(data[i]);
 }
 
-void mex_pack_int64(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_int64(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    int64_t *data = (int64_t*) mxGetPr(prhs);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
-   {
-      msgpack_pack_int64(pk, data[i]);
-   }
+      pk.pack(data[i]);
 }
 
-void mex_pack_uint64(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_uint64(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    uint64_t *data = (uint64_t*) mxGetPr(prhs);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
-   {
-      msgpack_pack_uint64(pk, data[i]);
-   }
+      pk.pack(data[i]);
 }
 
-void mex_pack_logical(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_logical(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    bool *data = mxGetLogicals(prhs);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
-      (data[i]) ? msgpack_pack_true(pk) : msgpack_pack_false(pk);
+   {
+      (data[i]) ? pk.pack_true() : pk.pack_false();
+   }
 }
 
-void mex_pack_char(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_char(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    mwSize str_len = mxGetNumberOfElements(prhs) + 1;
    char *buf = (char *) mxCalloc(str_len, sizeof(char));
@@ -390,8 +382,8 @@ void mex_pack_char(msgpack_packer *pk, int nrhs, const mxArray *prhs)
    if (mxGetString(prhs, buf, str_len) != 0)
       mexErrMsgTxt("Could not convert to C string data");
 
-   msgpack_pack_raw(pk, str_len);
-   msgpack_pack_raw_body(pk, buf, str_len);
+   pk.pack_str(str_len);
+   pk.pack_str_body(buf,str_len);
 
    mxFree(buf);
 
@@ -406,11 +398,11 @@ void mex_pack_char(msgpack_packer *pk, int nrhs, const mxArray *prhs)
     */
 }
 
-void mex_pack_cell(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_cell(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nElements = mxGetNumberOfElements(prhs);
    if (nElements > 1)
-      msgpack_pack_array(pk, nElements);
+      pk.pack_array(nElements);
    for (int i = 0; i < nElements; i++)
    {
       mxArray * pm = mxGetCell(prhs, i);
@@ -418,11 +410,11 @@ void mex_pack_cell(msgpack_packer *pk, int nrhs, const mxArray *prhs)
    }
 }
 
-void mex_pack_struct(msgpack_packer *pk, int nrhs, const mxArray *prhs)
+void mex_pack_struct(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArray *prhs)
 {
    int nField = mxGetNumberOfFields(prhs);
-   if (nField > 1)
-      msgpack_pack_map(pk, nField);
+   if(nField > 1)
+      pk.pack_map(nField);
    const char* fname = NULL;
    int fnameLen = 0;
    int ifield = 0;
@@ -430,8 +422,8 @@ void mex_pack_struct(msgpack_packer *pk, int nrhs, const mxArray *prhs)
    {
       fname = mxGetFieldNameByNumber(prhs, i);
       fnameLen = strlen(fname);
-      msgpack_pack_raw(pk, fnameLen);
-      msgpack_pack_raw_body(pk, fname, fnameLen);
+      pk.pack_str(fnameLen);
+      pk.pack_str_body(fname,fnameLen);
       ifield = mxGetFieldNumber(prhs, fname);
       mxArray* pm = mxGetFieldByNumber(prhs, 0, ifield);
       (*PackMap[mxGetClassID(pm)])(pk, nrhs, pm);
@@ -441,41 +433,41 @@ void mex_pack_struct(msgpack_packer *pk, int nrhs, const mxArray *prhs)
 void mex_pack(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
    /* creates buffer and serializer instance. */
-   msgpack_sbuffer* buffer = msgpack_sbuffer_new();
-   msgpack_packer* pk = msgpack_packer_new(buffer, msgpack_sbuffer_write);
+   msgpack::sbuffer * buffer = new msgpack::sbuffer();
+   msgpack::packer<msgpack::sbuffer> pk(buffer);
 
    for (int i = 0; i < nrhs; i++)
       (*PackMap[mxGetClassID(prhs[i])])(pk, nrhs, prhs[i]);
 
-   plhs[0] = mxCreateNumericMatrix(1, buffer->size, mxUINT8_CLASS, mxREAL);
-   memcpy(mxGetPr(plhs[0]), buffer->data, buffer->size * sizeof(uint8_t));
+   plhs[0] = mxCreateNumericMatrix(1, buffer->size(), mxUINT8_CLASS, mxREAL);
+   memcpy(mxGetPr(plhs[0]), buffer->data(), buffer->size() * sizeof(uint8_t));
 
    /* cleaning */
-   msgpack_sbuffer_free(buffer);
-   msgpack_packer_free(pk);
+   delete buffer;
+
 }
 
 void mex_pack_raw(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
    /* creates buffer and serializer instance. */
-   msgpack_sbuffer* buffer = msgpack_sbuffer_new();
-   msgpack_packer* pk = msgpack_packer_new(buffer, msgpack_sbuffer_write);
+   msgpack::sbuffer * buffer = new msgpack::sbuffer();
+   msgpack::packer<msgpack::sbuffer> pk(buffer);
 
    for (int i = 0; i < nrhs; i++)
    {
       size_t nElements = mxGetNumberOfElements(prhs[i]);
       size_t sElements = mxGetElementSize(prhs[i]);
       uint8_t *data = (uint8_t*) mxGetPr(prhs[i]);
-      msgpack_pack_raw(pk, nElements * sElements);
-      msgpack_pack_raw_body(pk, data, nElements * sElements);
+      pk.pack_str(nElements * sElements);
+      pk.pack_str_body((const char *)data,nElements * sElements);
    }
 
-   plhs[0] = mxCreateNumericMatrix(1, buffer->size, mxUINT8_CLASS, mxREAL);
-   memcpy(mxGetPr(plhs[0]), buffer->data, buffer->size * sizeof(uint8_t));
+   plhs[0] = mxCreateNumericMatrix(1, buffer->size(), mxUINT8_CLASS, mxREAL);
+   memcpy(mxGetPr(plhs[0]), buffer->data(), buffer->size() * sizeof(uint8_t));
 
    /* cleaning */
-   msgpack_sbuffer_free(buffer);
-   msgpack_packer_free(pk);
+   delete buffer;
+
 }
 
 void mex_unpacker_set_cell(mxArray *plhs, int nlhs, mxArrayRes *res)
@@ -559,32 +551,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    /* Init unpack functions Map */
    if (!init)
    {
-      unPackMap[MSGPACK_OBJECT_NIL] = mex_unpack_nil;
-      unPackMap[MSGPACK_OBJECT_BOOLEAN] = mex_unpack_boolean;
+      unPackMap[MSGPACK_OBJECT_NIL]              = mex_unpack_nil;
+      unPackMap[MSGPACK_OBJECT_BOOLEAN]          = mex_unpack_boolean;
       unPackMap[MSGPACK_OBJECT_POSITIVE_INTEGER] = mex_unpack_positive_integer;
       unPackMap[MSGPACK_OBJECT_NEGATIVE_INTEGER] = mex_unpack_negative_integer;
-      unPackMap[MSGPACK_OBJECT_FLOAT] = mex_unpack_double;
-      unPackMap[MSGPACK_OBJECT_RAW] = mex_unpack_raw;
-      unPackMap[MSGPACK_OBJECT_ARRAY] = mex_unpack_array;
-      unPackMap[MSGPACK_OBJECT_MAP] = mex_unpack_map;
+      unPackMap[MSGPACK_OBJECT_FLOAT]            = mex_unpack_double;
+      unPackMap[MSGPACK_OBJECT_STR]              = mex_unpack_raw;
+      unPackMap[MSGPACK_OBJECT_ARRAY]            = mex_unpack_array;
+      unPackMap[MSGPACK_OBJECT_MAP]              = mex_unpack_map;
 
-      PackMap[mxUNKNOWN_CLASS] = mex_pack_unknown;
-      PackMap[mxVOID_CLASS] = mex_pack_void;
+      PackMap[mxUNKNOWN_CLASS]  = mex_pack_unknown;
+      PackMap[mxVOID_CLASS]     = mex_pack_void;
       PackMap[mxFUNCTION_CLASS] = mex_pack_function;
-      PackMap[mxCELL_CLASS] = mex_pack_cell;
-      PackMap[mxSTRUCT_CLASS] = mex_pack_struct;
-      PackMap[mxLOGICAL_CLASS] = mex_pack_logical;
-      PackMap[mxCHAR_CLASS] = mex_pack_char;
-      PackMap[mxDOUBLE_CLASS] = mex_pack_double;
-      PackMap[mxSINGLE_CLASS] = mex_pack_single;
-      PackMap[mxINT8_CLASS] = mex_pack_int8;
-      PackMap[mxUINT8_CLASS] = mex_pack_uint8;
-      PackMap[mxINT16_CLASS] = mex_pack_int16;
-      PackMap[mxUINT16_CLASS] = mex_pack_uint16;
-      PackMap[mxINT32_CLASS] = mex_pack_int32;
-      PackMap[mxUINT32_CLASS] = mex_pack_uint32;
-      PackMap[mxINT64_CLASS] = mex_pack_int64;
-      PackMap[mxUINT64_CLASS] = mex_pack_uint64;
+      PackMap[mxCELL_CLASS]     = mex_pack_cell;
+      PackMap[mxSTRUCT_CLASS]   = mex_pack_struct;
+      PackMap[mxLOGICAL_CLASS]  = mex_pack_logical;
+      PackMap[mxCHAR_CLASS]     = mex_pack_char;
+      PackMap[mxDOUBLE_CLASS]   = mex_pack_double;
+      PackMap[mxSINGLE_CLASS]   = mex_pack_single;
+      PackMap[mxINT8_CLASS]     = mex_pack_int8;
+      PackMap[mxUINT8_CLASS]    = mex_pack_uint8;
+      PackMap[mxINT16_CLASS]    = mex_pack_int16;
+      PackMap[mxUINT16_CLASS]   = mex_pack_uint16;
+      PackMap[mxINT32_CLASS]    = mex_pack_int32;
+      PackMap[mxUINT32_CLASS]   = mex_pack_uint32;
+      PackMap[mxINT64_CLASS]    = mex_pack_int64;
+      PackMap[mxUINT64_CLASS]   = mex_pack_uint64;
 
       mexAtExit(mexExit);
       init = true;
@@ -597,19 +589,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    if (strcmp(fname, "pack") == 0)
    {
       if (mxIsChar(prhs[nrhs - 1]))
+      {
          flag = mxArrayToString(prhs[nrhs - 1]);
+      }
       if (strcmp(flag, "raw") == 0)
+      {
          mex_pack_raw(nlhs, plhs, nrhs - 2, prhs + 1);
+      }
       else
+      {
          mex_pack(nlhs, plhs, nrhs - 1, prhs + 1);
+      }
    }
    else if (strcmp(fname, "unpack") == 0)
+   {
       mex_unpack(nlhs, plhs, nrhs - 1, prhs + 1);
+   }
    else if (strcmp(fname, "unpacker") == 0)
+   {
       mex_unpacker_std(nlhs, plhs, nrhs - 1, prhs + 1);
-//  else if (strcmp(fname, "unpacker_std") == 0)
-//    mex_unpacker_std(nlhs, plhs, nrhs-1, prhs+1);
+   }
    else
+   {
       mexErrMsgTxt("Unknown function argument");
+   }
 }
 
