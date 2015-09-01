@@ -378,9 +378,15 @@ void mex_pack_char(msgpack::packer<msgpack::sbuffer>& pk, int nrhs, const mxArra
    if (mxGetString(prhs, buf, str_len) != 0)
       mexErrMsgTxt("Could not convert to C string data");
 
-   pk.pack_str(str_len);
-   pk.pack_str_body(buf,str_len);
+   mexPrintf("str_len %d\n",str_len);
+   mexPrintf("str: %s\n",buf);
 
+   //TODO: Does this change introduce the issue of limited string size?
+   //How else should one deal with null terminated c-strings over msgpack?
+//   pk.pack_str(str_len);
+//   pk.pack_str_body(buf,str_len);
+
+   pk.pack(std::string(buf));
    mxFree(buf);
 
    /* uint8 input
