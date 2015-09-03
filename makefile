@@ -1,7 +1,7 @@
 REL_TOPDIR := .
 OBJDIR = ./obj
-MSGPACKROOT=$(shell cygpath -m -w -s /cygdrive/c/home/workspace_cdt/msgpack-c)
-MATLABROOT=$(shell cygpath -m -w -s /cygdrive/c/Program\ Files/MATLAB/R2014b)
+MSGPACKROOT=../msgpack-c
+MATLABROOT=/c/Program\ Files/MATLAB/R2014b
 CC=gcc
 CXX=g++
 MEX_CFLAGS=-DMATLAB_MEX_FILE -I$(MATLABROOT)/extern/include 
